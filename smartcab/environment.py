@@ -211,7 +211,7 @@ class Environment(object):
                     reward += 10  # bonus
                 self.done = True
                 print "Environment.act(): Primary agent has reached destination!"  # [debug]
-            self.status_text = "state: {}\naction: {}\nreward: {}".format(agent.get_state(), action, reward)
+            self.status_text = "wins: {}    infractions: {} \nreward: {}    action: {} ".format(agent.get_stats()[0], agent.get_stats()[1], reward, action)
             #print "Environment.act() [POST]: location: {}, heading: {}, action: {}, reward: {}".format(location, heading, action, reward)  # [debug]
 
         return reward
@@ -238,6 +238,9 @@ class Agent(object):
 
     def get_state(self):
         return self.state
+
+    def get_stats(self):
+        return (self.wincount, self.invalidcount)
 
     def get_next_waypoint(self):
         return self.next_waypoint
