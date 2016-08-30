@@ -13,18 +13,21 @@ class LearningAgent(Agent):
         self.learner = {}
         self.wincount = 0
         self.invalidcount = 0
+        self.alpha = 0.3
+        self.discount = 0.5
+        self.initialvalue = 0
 
     def reset(self, destination=None):
         self.planner.route_to(destination)
         # TODO: Prepare for a new trip; reset any variables here, if required
     
     def qLearn(self, state, action, reward, stateprime, choices):
-        alpha = 0.5
+        self.alpha = 0.5
         statetuple = tuple(state.values())
         if (statetuple, action) not in self.learner:
-            self.learner[(statetuple, action)] = 5.0
+            self.learner[(statetuple, action)] = self.initialvalue
         else:
-            self.learner[(statetuple, action)] = self.learner[(statetuple, action)]*(1-alpha) + (reward + 0.9 * self.qChoose(state, choices)[0]) * alpha
+            self.learner[(statetuple, action)] = self.learner[(statetuple, action)]*(1-self.alpha) + (reward + self.discount * self.qChoose(state, choices)[0]) * self.alpha
         print self.learner[(statetuple, action)]
 
     def qChoose(self, state, choices):
@@ -33,7 +36,7 @@ class LearningAgent(Agent):
 
         for choice in choices:
             if (statetuple, choice) not in self.learner:
-                self.learner[(statetuple, choice)] = 5.0
+                self.learner[(statetuple, choice)] = self.initialvalue
             choice_weight = self.learner[(statetuple, choice)]
             final_choice = max([final_choice, (choice_weight, choice)])
         
@@ -47,9 +50,7 @@ class LearningAgent(Agent):
 
         # TODO: Update state
         self.state = inputs
-        self.state['dir_x'] = self.env.agent_states[self]['destination'][0] - self.env.agent_states[self]['location'][0] > 0
-        self.state['dir_y'] = self.env.agent_states[self]['destination'][1] - self.env.agent_states[self]['location'][1] > 0
-        self.state['heading'] = self.env.agent_states[self]['heading']
+        self.state['next_waypoint'] = self.next_waypoint
 
         # TODO: Select action according to your policy
         choices = [None, 'left', 'right', 'forward']
@@ -61,16 +62,16 @@ class LearningAgent(Agent):
 
         # TODO: Learn policy based on state, action, reward
         stateprime = self.env.sense(self)
-        stateprime['dir_x'] = self.env.agent_states[self]['destination'][0] - self.env.agent_states[self]['location'][0] > 0
-        stateprime['dir_y'] = self.env.agent_states[self]['destination'][1] - self.env.agent_states[self]['location'][1] > 0
-        stateprime['heading'] = self.env.agent_states[self]['heading']
+        stateprime['next_waypoint'] = self.planner.next_waypoint()
         self.qLearn(self.state, action, reward, stateprime, choices)
 
         if reward == 12:
             self.wincount += 1
-        elif reward == -1:
+        elif reward < 0:
             self.invalidcount += 1
+                
 
+        
         print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]        
 
 def run():
@@ -83,12 +84,11 @@ def run():
     # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
 
     # Now simulate it
-    sim = Simulator(e, update_delay=0.005, display=True)  # create simulator (uses pygame when display=True, if available)
+    sim = Simulator(e, update_delay=0.1, display=True)  # create simulator (uses pygame when display=True, if available)
     # NOTE: To speed up simulation, reduce update_delay and/or set display=False
 
-    sim.run(n_trials=1000)  # run for a specified number of trials
+    sim.run(n_trials=100)  # run for a specified number of trials
     # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
-
 
 if __name__ == '__main__':
     run()
